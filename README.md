@@ -1,5 +1,5 @@
 # juanita-gui-final-source-code
-This is the final version of Juanita's GUI source code.
+This is the final version of Juanita's GUI source code, the main code is "juanita_gui.py".
 
 # **Remember**
 
