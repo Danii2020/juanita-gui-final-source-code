@@ -5,5 +5,7 @@ Install all the necessary libraries like opencv, SpeechRecognition or pyttsx3, a
 **Follow me in TikTok and Youtube for the tutorial**
 
 **TikTok:** https://vm.tiktok.com/ZMentV5m8/
+
 **Youtube:** https://www.youtube.com/channel/UCLyCaySYfnrSVxbhW15gSDg
+
 Thanks!
