@@ -199,11 +199,13 @@ def run_juanita():
                 write(file)
         elif 'cierra' in rec:
             for task in programs:
+                kill_task = programs[task].split("\\")
+                kill_task = kill_task[-1]
                 if task in rec:
-                    kill_task = programs[task].split("\\")
-                    kill_task = kill_task[-1]
                     sub.call(f'taskkill /IM {kill_task} /F', shell=True)
                     talk(f"Cerrando {task}")
+                if 'todo' in rec:
+                    sub.call(f'taskkill /IM {kill_task} /F', shell=True)    
         elif 'ciérrate' in rec:
             talk("Adios!")
             sub.call('taskkill /IM python.exe /F', shell=True)
