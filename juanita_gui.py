@@ -11,7 +11,7 @@ import cam
 import os
 import threading as tr
 from pygame import mixer
-import tests
+import browser
 # Inicialización de pyttsx3
 name = "juanita"
 listener = sr.Recognizer()
@@ -163,7 +163,7 @@ def run_juanita():
         elif 'búscame' in rec:
             something = rec.replace("búscame", '').strip()
             talk("Buscando " + something)
-            tests.search(something)
+            browser.search(something)
         elif 'alarma' in rec:
             ta = tr.Thread(target=clock, args=(rec,))
             ta.start()
