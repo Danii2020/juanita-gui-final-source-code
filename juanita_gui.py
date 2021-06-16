@@ -12,6 +12,7 @@ import os
 import threading as tr
 from pygame import mixer
 import browser
+import test
 # Inicialización de pyttsx3
 name = "juanita"
 listener = sr.Recognizer()
@@ -149,6 +150,7 @@ def listen():
 def run_juanita():    
     while True:
         rec = listen()
+
         if 'reproduce' in rec:
             music = rec.replace('reproduce', '')
             talk("Reproduciendo " + music)
@@ -203,6 +205,12 @@ def run_juanita():
             except FileNotFoundError as e:
                 file = open("nota.txt", 'w')
                 write(file)
+        elif 'prende' in rec:
+            talk("Enseguida")
+            test.led(1)
+        elif 'apaga' in rec:
+            talk("Enseguida")
+            test.led(0)
         elif 'cierra' in rec:
             for task in programs:
                 kill_task = programs[task].split("\\")
