@@ -16,7 +16,6 @@ import browser
 #import test
 # Inicialización de pyttsx3
 name = "juanita"
-listener = sr.Recognizer()
 engine = pyttsx3.init()
 engine.setProperty('rate', 145)
 voices = engine.getProperty('voices')
@@ -174,16 +173,19 @@ def write_text(textc):
 
 
 def listen():
+    listener = sr.Recognizer()
+    
+    with sr.Microphone() as source:            
+        listener.adjust_for_ambient_noise(source)
+        talk("Te escucho")
+        pc = listener.listen(source)
     try:
-        with sr.Microphone() as source:
-            talk("Te escucho")
-            pc = listener.listen(source)
-            rec = listener.recognize_google(pc, language="es")
-            rec = rec.lower()
-            if name in rec:
-                rec = rec.replace(name, '')
-    except:
-        pass
+        rec = listener.recognize_google(pc, language="es")
+        rec = rec.lower()
+    except sr.UnknownValueError:
+        print("No te entendí, intenta de nuevo")
+    except sr.RequestError as e:
+        print("Could not request results from Google Speech Recognition service; {0}".format(e))
     return rec
 
 # Funciones de acción
@@ -242,7 +244,7 @@ def colores(rec):
     t.start()
 
 
-def escribe():
+def escribe(rec):
     try:
         with open("nota.txt", 'a') as f:
             write(f)
@@ -266,13 +268,13 @@ def cerrar(rec):
 
 
 def led(rec):
-    pass
-#     if 'prende' in rec:
-#         talk("Enseguida")
-#         test.led(1)
-#     elif 'apaga' in rec:
-#         talk("Enseguida")
-#         test.led(0)
+     pass
+    # if 'prende' in rec:
+    #     talk("Enseguida")
+    #     test.led(1)
+    # elif 'apaga' in rec:
+    #     talk("Enseguida")
+    #     test.led(0)
 
 
 def thread_alarma(rec):
@@ -290,6 +292,7 @@ key_words = {
     'búscame': buscame,
     'escribe': escribe,
     'colores': colores,
+    'prende': led,
     'apaga': led,
     'cierra': cerrar,
     'ciérrate': cerrar
@@ -299,13 +302,16 @@ key_words = {
 
 def run_juanita():
     while True:
-        rec = listen()
+        try:
+            rec = listen()
+        except UnboundLocalError:
+            talk("No te entendí, intenta de nuevo")
+            continue
         if 'busca' in rec:
             key_words['busca'](rec)
             break
         else:
             for word in key_words:
-
                 if word in rec:
                     key_words[word](rec)
         if 'termina' in rec:
