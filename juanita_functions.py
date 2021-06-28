@@ -13,6 +13,7 @@ import os
 import threading as tr
 from pygame import mixer
 import browser
+import whatsapp as whapp
 #import test
 # Inicialización de pyttsx3
 name = "juanita"
@@ -22,7 +23,7 @@ voices = engine.getProperty('voices')
 # Declaración de los elementos de la ventana principal
 main_window = Tk()
 main_window.title("Juanita AI")
-main_window.geometry("800x450")
+main_window.geometry("800x480")
 main_window.configure(bg="#0082c8")
 main_window.resizable(0, 0)
 # Texto a mostrar de comandos
@@ -30,12 +31,17 @@ comandos = """
     Comandos que puedes usar:
     - Reproduce..(canción)
     - Busca...(algo)
+    - Búscame...(algo)
     - Abre...(página web o app)
     - Alarma..(hora en 24H)
     - Archivo...(nombre)
     - Colores (rojo, azul, amarillo)
+    - Escribe
+    - Prende o apaga led
+    - Mensaje
+    - Cierra...(programa)
+    - Ciérrate
     - Termina
-    - Búscame algo
 """
 
 
@@ -45,12 +51,12 @@ label_name = Label(main_window, text="Juanita AI", fg="#203A43", bg="#36D1DC",
 juanita_photo = ImageTk.PhotoImage(Image.open("juanita_photo.jpg"))
 back_photo = Label(main_window, image=juanita_photo).pack(pady=10)
 # Canvas en dónde se ubicarán los comandos
-canvas = Canvas(bg="#0575E6", height=450, width=200)
+canvas = Canvas(bg="#0575E6", height=480, width=200)
 canvas.place(x=0, y=0)
-canvas.create_text(90, 80, text=comandos, fill='white', font='Arial 11')
+canvas.create_text(90, 120, text=comandos, fill='white', font='Arial 11')
 # Texto en dónde se mostrará información de Wikipedia
 text_info = Text(main_window, bg="#0575E6", fg="white")
-text_info.place(x=0, y=175, height=350, width=200)
+text_info.place(x=0, y=250, height=350, width=200)
 # Función de hablar
 
 
@@ -160,6 +166,8 @@ files = dict()
 charge_data(files, "archivos.txt")
 programs = dict()
 charge_data(programs, "apps.txt")
+contacts = dict()
+charge_data(contacts, "contacts.txt")
 # Funciones de escuchar, escribir y leer
 
 
@@ -281,6 +289,23 @@ def thread_alarma(rec):
     ta = tr.Thread(target=clock, args=(rec,))
     ta.start()
 
+def enviar_mensaje(rec):
+    talk("¿A quién quieres enviar el mensaje?")
+    contact = listen()
+    contact = contact.strip()
+    if contact in contacts:
+        for cont in contacts:
+            if cont == contact:
+                contact = contacts[cont]
+                talk("¿Qué mensaje le quieres enviar")
+                message = listen()
+                talk("Enviando mensaje...")
+                whapp.send_message(contact, message)
+    else:
+        talk("Parece que ese contacto no lo tienes agregado, usa el botón de \
+        agregar contacto!")
+    
+    
 
 # Diccionario de funciones
 key_words = {
@@ -294,6 +319,7 @@ key_words = {
     'colores': colores,
     'prende': led,
     'apaga': led,
+    'mensaje':enviar_mensaje,
     'cierra': cerrar,
     'ciérrate': cerrar
 }
@@ -317,6 +343,7 @@ def run_juanita():
         if 'termina' in rec:
             talk('Adios!')
             break
+    main_window.update()
 # Función para escribir una nota en un archivo
 
 
@@ -418,6 +445,27 @@ def open_app_window():
     rutea_entry.pack(pady=1)
     button_add = Button(file_win, text="Agregar", bg='#16222A',
                         fg="white", width=8, height=1, command=add_apps).pack(pady=5)
+
+def open_contact_window():
+    global namec_entry, phone_entry
+    contact_win = Toplevel()
+    contact_win .title("Agregar contacto")
+    contact_win .geometry('300x200')
+    contact_win .configure(bg="#434343")
+    contact_win .resizable(0, 0)
+    main_window.eval(f'tk::PlaceWindow {str(contact_win )} center')
+    title_label = Label(contact_win, text="Agrega un contacto", fg="white",
+                        bg="#434343", font=('Arial', 15, 'bold')).pack(pady=3)
+    text_name = Label(contact_win, text="Nombre del contacto", fg="white",
+                      bg="#434343", font=('Arial', 10, 'bold')).pack(pady=2)
+    namec_entry = Entry(contact_win)
+    namec_entry.pack(pady=1)
+    phone_number = Label(contact_win, text="Número de teléfono (con código de país)", fg="white",
+                      bg="#434343", font=('Arial', 10, 'bold')).pack(pady=2)
+    phone_entry = Entry(contact_win, width=30)
+    phone_entry.pack(pady=1)
+    button_add = Button(contact_win, text="Agregar", bg='#16222A',
+                        fg="white", width=8, height=1, command=add_contacts).pack(pady=5)
 # Funciones para agregar cosas a los diccionarios
 
 
@@ -446,6 +494,14 @@ def add_apps():
     save_files("apps.txt", namea, rutea)
     namea_entry.delete(0, "end")
     rutea_entry.delete(0, "end")
+
+def add_contacts():
+    namec = namec_entry.get()
+    phone = phone_entry.get()
+    contacts[namec] = phone
+    save_files("contacts.txt", namec, phone)
+    namec_entry.delete(0, "end")
+    phone_entry.delete(0, "end")
 
 
 def save_files(file, name, route):
@@ -484,32 +540,59 @@ def talk_apps():
     else:
         talk("Aún no has agregado aplicaciones!")
 
+def talk_contacts():
+    if bool(contacts) == True:
+        talk("Has agregado a los siguientes contactos")
+        for cont in contacts:
+            talk(cont)
+    else:
+        talk("Aún no has agregado contactos!")
+
 
 # Botones main_window
 button_voice1 = Button(main_window, text="Voz México", bg='#0f9b0f', fg="white", font=('Arial', 10, 'bold'), command=mexican_voice) \
     .place(x=645, y=90, height=30, width=100)
+
 button_voice2 = Button(main_window, text="Voz España", bg='#FF0000', fg="white", font=('Arial', 10, 'bold'), command=spanish_voice) \
     .place(x=645, y=125, height=30, width=100)
+
 button_voice3 = Button(main_window, text="Voz USA", bg='#0575E6', fg="white", font=('Arial', 10, 'bold'), command=english_voice) \
     .place(x=645, y=160, height=30, width=100)
+
 button_speak = Button(main_window, text="Hablar", bg='#b6fbff', fg="black", font=('Arial', 10, 'bold'), command=read_talk) \
     .place(x=645, y=195, height=30, width=100)
+
 button_stop = Button(main_window, text="Deten alarma", bg='#b6fbff', fg="black", font=('Arial', 10, 'bold'), command=stop_music) \
     .place(x=645, y=230, height=30, width=100)
+
 button_files = Button(main_window, text="Agregar archivos", bg='#16222A', fg="white", font=('Arial', 10, 'bold'), command=open_file_window) \
     .place(x=630, y=300, height=30, width=130)
+
 button_web = Button(main_window, text="Agregar páginas", bg='#16222A', fg="white", font=('Arial', 10, 'bold'), command=open_page_window) \
     .place(x=630, y=335, height=30, width=130)
+
 button_apps = Button(main_window, text="Agregar apps", bg='#16222A', fg="white", font=('Arial', 10, 'bold'), command=open_app_window) \
     .place(x=630, y=370, height=30, width=130)
+
+button_contacts = Button(main_window, text="Agregar contacto", bg='#16222A', fg="white", font=('Arial', 10, 'bold'), command=open_contact_window) \
+    .place(x=630, y=405, height=30, width=130)
+
 button_listen = Button(main_window, text="Escuchar", bg='#b6fbff', fg="black",
                        height=2, width=30, font=('Arial', 10, 'bold'), command=run_juanita)
 button_listen.pack(pady=10)
+
 button_add_f = Button(main_window, text="Archivos agregados", bg='#16222A', fg="white", font=('Arial', 7, 'bold'), command=talk_files) \
-    .place(x=235, y=400, height=30, width=100)
-button_add_p = Button(main_window, text="Páginas agregadas", bg='#16222A', fg="white", font=('Arial', 7, 'bold'), command=talk_sites) \
-    .place(x=355, y=400, height=30, width=100)
+    .place(x=225, y=400, height=30, width=100)
+
+button_add_p = Button(main_window, text="Páginas agregadas", bg='#16222A', fg="white", font=('Arial', 7, 'bold'), height=2, width=20, \
+command=talk_sites)
+button_add_p.pack(side=BOTTOM, pady=8)
+
 button_add_a = Button(main_window, text="Apps agregadas", bg='#16222A', fg="white", font=('Arial', 7, 'bold'), command=talk_apps) \
     .place(x=475, y=400, height=30, width=100)
+
+button_add_c = Button(main_window, text="Contactos agregados", bg='#16222A', fg="white", font=('Arial', 7, 'bold'), height=2, width=20, \
+command=talk_contacts)
+button_add_c.pack(side=BOTTOM, pady=8)
 # Ejecución de mainloop()
 main_window.mainloop()
