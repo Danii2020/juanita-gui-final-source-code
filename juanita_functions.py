@@ -14,7 +14,10 @@ import threading as tr
 from pygame import mixer
 import browser
 import whatsapp as whapp
-#import test
+from chatterbot import ChatBot
+from chatterbot.trainers import ListTrainer
+import database
+# import test
 # Inicialización de pyttsx3
 name = "juanita"
 engine = pyttsx3.init()
@@ -180,12 +183,12 @@ def write_text(textc):
     text_info.insert(INSERT, textc)
 
 
-def listen():
+def listen(phrase=None):
     listener = sr.Recognizer()
     
     with sr.Microphone() as source:            
         listener.adjust_for_ambient_noise(source)
-        talk("Te escucho")
+        talk(phrase)
         pc = listener.listen(source)
     try:
         rec = listener.recognize_google(pc, language="es")
@@ -276,7 +279,7 @@ def cerrar(rec):
 
 
 def led(rec):
-     pass
+    pass
     # if 'prende' in rec:
     #     talk("Enseguida")
     #     test.led(1)
@@ -291,20 +294,37 @@ def thread_alarma(rec):
 
 def enviar_mensaje(rec):
     talk("¿A quién quieres enviar el mensaje?")
-    contact = listen()
+    contact = listen("Te escucho")
     contact = contact.strip()
     if contact in contacts:
         for cont in contacts:
             if cont == contact:
                 contact = contacts[cont]
                 talk("¿Qué mensaje le quieres enviar")
-                message = listen()
+                message = listen("Te escucho")
                 talk("Enviando mensaje...")
                 whapp.send_message(contact, message)
     else:
         talk("Parece que ese contacto no lo tienes agregado, usa el botón de \
         agregar contacto!")
-    
+
+def chat(rec):
+    chat = ChatBot("juanita", database_uri=None)
+    trainer = ListTrainer(chat)
+    trainer.train(database.get_answer_brain())
+    talk("Vamos a conversar")
+    while True:
+        try:
+            request = listen("").strip()
+        except UnboundLocalError:
+            talk("No te entendí, intenta de nuevo")
+            continue
+        print("Tú:", request)
+        answer = chat.get_response(request)
+        print("Juanita:", answer)
+        talk(answer)
+        if 'chao' in request:
+            break  
     
 
 # Diccionario de funciones
@@ -321,7 +341,8 @@ key_words = {
     'apaga': led,
     'mensaje':enviar_mensaje,
     'cierra': cerrar,
-    'ciérrate': cerrar
+    'ciérrate': cerrar,
+    'conversar':chat
 }
 # Función principal de Juanita
 
@@ -329,7 +350,7 @@ key_words = {
 def run_juanita():
     while True:
         try:
-            rec = listen()
+            rec = listen("Te escucho")
         except UnboundLocalError:
             talk("No te entendí, intenta de nuevo")
             continue
@@ -349,7 +370,7 @@ def run_juanita():
 
 def write(f):
     talk("¿Qué quieres que escriba?")
-    rec_write = listen()
+    rec_write = listen("Te escucho")
     f.write(rec_write + os.linesep)
     f.close()
     talk("Listo, puedes revisarlo")
