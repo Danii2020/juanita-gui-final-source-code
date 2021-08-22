@@ -15,15 +15,17 @@ from pygame import mixer
 import browser
 import whatsapp as whapp
 from chatterbot import ChatBot
+from chatterbot import preprocessors
 from chatterbot.trainers import ListTrainer
 import database
 import Face_Recognizer.face_recognizer as fr
-# import test
+#import test
 # Inicialización de pyttsx3
 name = "juanita"
 engine = pyttsx3.init()
 engine.setProperty('rate', 145)
 voices = engine.getProperty('voices')
+engine.setProperty('voice', voices[2].id)
 # Declaración de los elementos de la ventana principal
 main_window = Tk()
 main_window.title("Juanita AI")
@@ -69,8 +71,6 @@ def talk(text):
     engine.runAndWait()
     text_info.delete('1.0', 'end')
 # Ventana en donde se pide el nombre del usuario
-
-
 def give_name():
     global name_entry
     name_window = Toplevel()
@@ -135,21 +135,22 @@ thread_hello()
 
 
 def mexican_voice():
-    change_voice(0)
+    change_voice(2)
 
 
 def spanish_voice():
-    change_voice(1)
+    change_voice(0)
 
 
 def english_voice():
-    change_voice(2)
+    change_voice(1)
 
 
 def change_voice(pos):
     engine.setProperty('voice', voices[pos].id)
     engine.setProperty('rate', 145)
     talk("Hola, soy Juanita!")
+
 # Diccionarios para abrir apps, páginas web y archivos
 
 
@@ -185,8 +186,7 @@ def write_text(textc):
 
 
 def listen(phrase=None):
-    listener = sr.Recognizer()
-    
+    listener = sr.Recognizer()    
     with sr.Microphone() as source:            
         listener.adjust_for_ambient_noise(source)
         talk(phrase)
@@ -309,24 +309,11 @@ def enviar_mensaje(rec):
         talk("Parece que ese contacto no lo tienes agregado, usa el botón de \
         agregar contacto!")
 
-def chat(rec):
-    chat = ChatBot("juanita", database_uri=None)
-    trainer = ListTrainer(chat)
-    trainer.train(database.get_answer_brain())
-    talk("Vamos a conversar")
-    while True:
-        try:
-            request = listen("").strip()
-        except UnboundLocalError:
-            talk("No te entendí, intenta de nuevo")
-            continue
-        print("Tú:", request)
-        answer = chat.get_response(request)
-        print("Juanita:", answer)
-        talk(answer)
-        if 'chao' in request:
-            break  
-    
+# def functions(rec):
+#     for word in key_words:
+#         if word in rec:
+#             key_words[word](rec)
+#             return True
 def alarma_reconocimiento(rec):
     rec = rec.replace('reconocimiento', '').strip()
     if rec == 'activado':
@@ -353,27 +340,35 @@ key_words = {
     'mensaje':enviar_mensaje,
     'cierra': cerrar,
     'ciérrate': cerrar,
-    'conversar':chat,
+    # 'conversar':chat,
     'reconocimiento':alarma_reconocimiento
 }
 # Función principal de Juanita
 
 
 def run_juanita():
+    chat = ChatBot("juanita", database_uri=None)
+    trainer = ListTrainer(chat)
+    trainer.train(database.get_questions_answers())
+    talk("Te escucho...")
     while True:
         try:
-            rec = listen("Te escucho...")
-            print(rec)
+            rec = listen("").strip()
         except UnboundLocalError:
-            talk("No te entendí, intenta de nuevo")
+            talk("No te entendí, intenta de nuevo")            
             continue
+        print(rec)        
         if 'busca' in rec:
             key_words['busca'](rec)
-            break
-        else:
-            for word in key_words:
-                if word in rec:
-                    key_words[word](rec)
+        elif rec.split()[0] in key_words:
+            key = rec.split()[0]
+            key_words[key](rec)
+        else:                                                                
+            print("Tú:", rec)
+            answer = chat.get_response(rec)
+            print("Juanita:", answer)
+            talk(answer)      
+           
         if 'termina' in rec:
             talk('Adios!')
             break

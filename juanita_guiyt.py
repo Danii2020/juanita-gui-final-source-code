@@ -15,9 +15,11 @@ import whatsapp as whapp
 import browser
 import database
 from chatterbot import ChatBot
+from chatterbot import preprocessors
 from chatterbot.trainers import ListTrainer
 import Face_Recognizer.face_recognizer as fr 
-                                                                                                                                       
+import serial 
+# ser = serial.Serial('COM3', 9600)                                                                                                                                      
 main_window = Tk()
 main_window.title("Juanita AI")
 
@@ -78,7 +80,7 @@ listener = sr.Recognizer()
 engine = pyttsx3.init()
 
 voices = engine.getProperty('voices')
-engine.setProperty('voice', voices[0].id)
+engine.setProperty('voice', voices[2].id)
 engine.setProperty('rate', 145)
 
 
@@ -249,30 +251,12 @@ def cierra(rec):
             talk(f'Cerrando {task}')
     if 'ciérrate' in rec:
         talk('Adiós!')
-        sub.call('TASKKILL /IM python.exe /F', shell=True)
+        sub.call('TASKKILL /IM juanita_guiyt.exe /F', shell=True)
         
 def buscame(rec):
     something = rec.replace('búscame', '').strip()
     talk("Buscando " + something)
     browser.search(something)            
-
-def conversar(rec):
-    chat = ChatBot("juanita", database_uri=None)
-    trainer = ListTrainer(chat)
-    trainer.train(database.get_questions_answers())
-    talk("Vamos a conversar...")
-    while True:
-        try:
-            request = listen("")
-        except UnboundLocalError:
-            talk("No te entendí, intenta de nuevo")
-            continue
-        print("Tú: ", request)
-        answer = chat.get_response(request)
-        print("Juanita: ", answer)
-        talk(answer)
-        if 'chao' in request:
-            break
 
 def reconocimiento(rec):
     rec = rec.replace('reconocimiento', '').strip()
@@ -282,8 +266,20 @@ def reconocimiento(rec):
         talk("Activando alarma de reconocimiento...")
     elif 'aguacate':
         fr.face_rec(1)
-    
 
+def serial_led(val):        
+    data = str(val).encode()
+    ser.write(data)
+
+def led(rec):
+    # print(rec)
+    # if 'prende' in rec:
+    #     talk("Prendiendo leds...")
+    #     serial_led(1)
+    # elif 'apaga' in rec:
+    #     talk("Apagando leds...")
+    #     serial_led(0)
+    pass
 # Diccionario con palabras claves
 key_words = {
     'reproduce': reproduce,
@@ -297,30 +293,37 @@ key_words = {
     'cierra': cierra,
     'ciérrate': cierra,
     'búscame': buscame,
-    'conversar': conversar,
-    'reconocimiento': reconocimiento
+    'reconocimiento': reconocimiento,
+    'prende': led,
+    'apaga': led
 
 }
 
 
 def run_juanita():
+    chat = ChatBot("juanita", database_uri=None)
+    trainer = ListTrainer(chat)
+    trainer.train(database.get_questions_answers())
+    talk("Te escucho...")
     while True:
         try:
-            rec = listen("Te escucho")
+            rec = listen("")
         except UnboundLocalError:
             talk("No te entendí, intenta de nuevo")
             continue
         if 'busca' in rec:
             key_words['busca'](rec)
             break
+        elif rec.split()[0] in key_words:
+            key = rec.split()[0]        
+            key_words[key](rec)
         else:
-            for word in key_words:
-                if word in rec:
-                    key_words[word](rec)
-        if 'termina' in rec:
-            talk("Adios!")
-            break
-               
+            print("Tú: ", rec)
+            answer = chat.get_response(rec)
+            print("Juanita: ", answer)
+            talk(answer)
+            if 'chao' in rec:
+                break
     main_window.update()
 
 def write(f):
