@@ -19,6 +19,7 @@ from chatterbot import preprocessors
 from chatterbot.trainers import ListTrainer
 import database
 import Face_Recognizer.face_recognizer as fr
+import teams, zoom, meet
 #import test
 # Inicialización de pyttsx3
 name = "juanita"
@@ -67,9 +68,12 @@ text_info.place(x=0, y=250, height=350, width=200)
 
 
 def talk(text):
+    time.sleep(0.6)
     engine.say(text)
     engine.runAndWait()
     text_info.delete('1.0', 'end')
+    if engine._inLoop:
+        engine.endLoop()
 # Ventana en donde se pide el nombre del usuario
 def give_name():
     global name_entry
@@ -324,6 +328,23 @@ def alarma_reconocimiento(rec):
         fr.face_rec(1) 
     
 
+def activate_meeting(platform):    
+    if platform == 'zoom':
+        t = tr.Thread(target=zoom.open_class)
+        t.start()
+    elif platform == 'meet':
+        t = tr.Thread(target=meet.open_class)
+        t.start()
+    elif platform == 'teams':
+        t = tr.Thread(target=teams.open_class)
+        t.start()    
+    print("Activando clases virtuales...")
+    
+
+def thread_meeting(platform):
+    thread = tr.Thread(target=activate_meeting, args=(platform,))
+    thread.start()
+
 
 # Diccionario de funciones
 key_words = {
@@ -340,8 +361,10 @@ key_words = {
     'mensaje':enviar_mensaje,
     'cierra': cerrar,
     'ciérrate': cerrar,
-    # 'conversar':chat,
-    'reconocimiento':alarma_reconocimiento
+    'reconocimiento':alarma_reconocimiento,
+    'zoom':thread_meeting,
+    'meet':thread_meeting,
+    'teams':thread_meeting
 }
 # Función principal de Juanita
 
@@ -350,29 +373,33 @@ def run_juanita():
     chat = ChatBot("juanita", database_uri=None)
     trainer = ListTrainer(chat)
     trainer.train(database.get_questions_answers())
-    talk("Te escucho...")
     while True:
         try:
             rec = listen("").strip()
+            rec_list = rec.split()
         except UnboundLocalError:
             talk("No te entendí, intenta de nuevo")            
             continue
-        print(rec)        
-        if 'busca' in rec:
-            key_words['busca'](rec)
-        elif rec.split()[0] in key_words:
-            key = rec.split()[0]
-            key_words[key](rec)
+        # print(rec)        
+        if rec_list[0] == 'juanita':
+            rec = rec.replace('juanita', '').strip()  
+            print(rec)      
+            if 'busca' in rec:                
+                key_words['busca'](rec)
+            elif rec.split()[0] in key_words:
+                key = rec.split()[0]
+                key_words[key](rec)
+            elif 'termina' in rec:
+                talk('Adios!')
+                break
         else:                                                                
             print("Tú:", rec)
             answer = chat.get_response(rec)
             print("Juanita:", answer)
-            talk(answer)      
-           
-        if 'termina' in rec:
-            talk('Adios!')
-            break
+            talk(answer)            
+            
     main_window.update()
+
 # Función para escribir una nota en un archivo
 
 
@@ -402,6 +429,7 @@ def clock(rec):
         if keyboard.read_key() == "s":
             mixer.music.stop()
             break
+
 # Función para detener el despertador
 
 
@@ -607,7 +635,7 @@ button_contacts = Button(main_window, text="Agregar contacto", bg='#16222A', fg=
     .place(x=630, y=405, height=30, width=130)
 
 button_listen = Button(main_window, text="Escuchar", bg='#b6fbff', fg="black",
-                       height=2, width=30, font=('Arial', 10, 'bold'), command=run_juanita)
+                       height=2, width=30, font=('Arial', 10, 'bold'), command=tr.Thread(target=run_juanita).start())
 button_listen.pack(pady=10)
 
 button_add_f = Button(main_window, text="Archivos agregados", bg='#16222A', fg="white", font=('Arial', 7, 'bold'), command=talk_files) \
