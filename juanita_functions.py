@@ -692,7 +692,6 @@ import colors
 import os
 import threading as tr
 from pygame import mixer
-import browser
 import whatsapp as whapp
 from chatterbot import ChatBot
 from chatterbot import preprocessors
@@ -904,7 +903,7 @@ def busca(rec):
 def buscame(rec):
     something = rec.replace("búscame", '').strip()
     talk("Buscando " + something)
-    browser.search(something)
+    pywhatit.search(something)
 
 
 def abre(rec):
